@@ -122,7 +122,10 @@ def plot_var_sc_mutational_prev(sample_obj, known_bulk_somatic_vars, min_mut_pre
         annotation_font_color="red",
     )
 
-    # label known bulk somatic mutations 
+    # label known bulk somatic mutations
+    count = 0
+    y_val = 0.5
+    ay_val = -30 
     for var_i in known_bulk_somatic_vars:
         if var_i in mut_prev_array.index:
             y_val += count * 0.15
