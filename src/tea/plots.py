@@ -73,19 +73,19 @@ def plot_venn(
         )
     plt.show()
 
-def plot_sc_mutational_prev(sample, known_bulk_somatic_vars, min_mut_prev_of_interest, sample_name = None):
+def plot_var_sc_mutational_prev(sample_obj, known_bulk_somatic_vars, min_mut_prev_of_interest, sample_name = None):
     '''
     Plot the single-cell level mutation prevalence of the sample
     
     '''
     if sample_name is None:
         # attempt to get sample_name from h5 metadata
-        sample_name = sample.dna.metadata['sample_name']
+        sample_name = sample_obj.dna.metadata['sample_name']
 
-    mut_prev_array = sample.dna.get_attribute(
+    mut_prev_array = sample_obj.dna.get_attribute(
         'mut', constraint='row'
     ).sum(axis=0)
-    total_cell_num = sample.dna.shape[0]
+    total_cell_num = sample_obj.dna.shape[0]
 
     fig = px.histogram(
         mut_prev_array,
@@ -124,19 +124,44 @@ def plot_sc_mutational_prev(sample, known_bulk_somatic_vars, min_mut_prev_of_int
 
     # label known bulk somatic mutations 
     for var_i in known_bulk_somatic_vars:
-        if var_i in mut_prev_array:
-            fig.add_vline(
-                mut_prev_array[var_i],
-                line_color='green', line_dash="dash",
-                line_width=2, row=1, col=1, opacity=0.2,
-                annotation_text=var_i,
-                annotation_font_size=6,
-                annotation_font_color="green",
-            )
+        if var_i in mut_prev_array.index:
+            y_val += count * 0.15
+            count += 1
+            
+            fig.add_annotation(x = mut_prev_array[var_i], y = y_val,
+                    text = str(known_bulk_somatic_vars[var_i]['Hugo_Symbol']) + ' ' + str(known_bulk_somatic_vars[var_i]['HGVSp_Short']),
+                    xref = 'x', yref = 'y',
+                    showarrow=True,
+                    font=dict(
+                        family="Courier New, monospace",
+                        size=10,
+                        color="#ffffff"
+                        ),
+                    align="center",
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=0.5,
+                    arrowcolor="#000000",
+                    ax=0,
+                    ay=ay_val,
+                    bordercolor="#c7c7c7",
+                    borderwidth=2,
+                    borderpad=4,
+                    bgcolor="#ff7f0e",
+                    opacity=0.8,
+                    captureevents = True
+                    )
 
 
     fig.update_layout(width = 1000, height=400,\
-                    title_text = f'{sample_name} (mutect2 force-called) variant mutational prevalence histogram<br><sup>total: {total_cell_num} cells</sup>',\
+                    title_text = f'{sample_name} variant mutational prevalence )single-cells) histogram<br><sup>total: {total_cell_num} cells</sup>',\
                     title_x = 0.5, title_xanchor = 'center', title_yanchor = 'top')
-    fig.show(config=config, renderer='notebook')
+    #fig.show(config=config, renderer='notebook')
 
+# def plot_sc_mutational_burden(sample_obj, sample_name = None):
+#     '''
+#     Plot the single-cell level mutation burden of the sample
+#     '''
+#     if sample_name is None:
+#         # attempt to get sample_name from h5 metadata
+#         sample_name = sample_obj.dna.metadata['sample_name']
