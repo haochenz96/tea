@@ -159,7 +159,7 @@ def plot_var_sc_mutational_prev(sample_obj, known_bulk_somatic_vars, min_mut_pre
     fig.update_layout(width = 1000, height=400,\
                     title_text = f'{sample_name} variant mutational prevalence )single-cells) histogram<br><sup>total: {total_cell_num} cells</sup>',\
                     title_x = 0.5, title_xanchor = 'center', title_yanchor = 'top')
-    #fig.show(config=config, renderer='notebook')
+    return fig
 
 # def plot_sc_mutational_burden(sample_obj, sample_name = None):
 #     '''
