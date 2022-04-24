@@ -178,6 +178,8 @@ def read_vcf_to_df(in_bcf, sample_name=None):
                 out_df.loc[idx, ['chr', 'start', 'end', 'ref_base', 'alt_base']] = [chr, start, end, ref_base, alt_bases[0]]
                 idx += 1
 
+    out_df['condensed_format'] = out_df['chr'].astype(str) + ':' + out_df['start'].astype(str) + ':' + out_df['ref_base'].astype(str) + '/' + out_df['alt_base'].astype(str)
+    out_df.set_index('condensed_format', inplace=True)
     return out_df
 
 

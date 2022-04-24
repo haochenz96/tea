@@ -73,7 +73,7 @@ def plot_venn(
         )
     plt.show()
 
-def plot_var_sc_mutational_prev(sample_obj, known_bulk_somatic_vars, min_mut_prev_of_interest, sample_name = None):
+def plot_var_sc_mutational_prev(sample_obj, min_mut_prev_of_interest = 0.01,known_bulk_somatic_vars=None, sample_name = None):
     '''
     Plot the single-cell level mutation prevalence of the sample
     
@@ -93,6 +93,10 @@ def plot_var_sc_mutational_prev(sample_obj, known_bulk_somatic_vars, min_mut_pre
         nbins = total_cell_num
     )
 
+    fig.update_layout(width = 1000, height=400,\
+                    title_text = f'{sample_name} variant mutational prevalence )single-cells) histogram<br><sup>total: {total_cell_num} cells</sup>',\
+                    title_x = 0.5, title_xanchor = 'center', title_yanchor = 'top')
+                    
     fig.update_yaxes(
         title = 'log count of number of variants',
         titlefont=dict(family='Arial', color='crimson', size=20)
@@ -123,42 +127,39 @@ def plot_var_sc_mutational_prev(sample_obj, known_bulk_somatic_vars, min_mut_pre
     )
 
     # label known bulk somatic mutations
-    count = 0
-    y_val = 0.5
-    ay_val = -30 
-    for var_i in known_bulk_somatic_vars:
-        if var_i in mut_prev_array.index:
-            y_val += count * 0.15
-            count += 1
-            
-            fig.add_annotation(x = mut_prev_array[var_i], y = y_val,
-                    text = str(known_bulk_somatic_vars[var_i]['Hugo_Symbol']) + ' ' + str(known_bulk_somatic_vars[var_i]['HGVSp_Short']),
-                    xref = 'x', yref = 'y',
-                    showarrow=True,
-                    font=dict(
-                        family="Courier New, monospace",
-                        size=10,
-                        color="#ffffff"
-                        ),
-                    align="center",
-                    arrowhead=2,
-                    arrowsize=1,
-                    arrowwidth=0.5,
-                    arrowcolor="#000000",
-                    ax=0,
-                    ay=ay_val,
-                    bordercolor="#c7c7c7",
-                    borderwidth=2,
-                    borderpad=4,
-                    bgcolor="#ff7f0e",
-                    opacity=0.8,
-                    captureevents = True
-                    )
+    if known_bulk_somatic_vars is not None:
+        count = 0
+        y_val = 0.5
+        ay_val = -30 
+        for var_i in known_bulk_somatic_vars:
+            if var_i in mut_prev_array.index:
+                y_val += count * 0.15
+                count += 1
+                
+                fig.add_annotation(x = mut_prev_array[var_i], y = y_val,
+                        text = str(known_bulk_somatic_vars[var_i]['Hugo_Symbol']) + ' ' + str(known_bulk_somatic_vars[var_i]['HGVSp_Short']),
+                        xref = 'x', yref = 'y',
+                        showarrow=True,
+                        font=dict(
+                            family="Courier New, monospace",
+                            size=10,
+                            color="#ffffff"
+                            ),
+                        align="center",
+                        arrowhead=2,
+                        arrowsize=1,
+                        arrowwidth=0.5,
+                        arrowcolor="#000000",
+                        ax=0,
+                        ay=ay_val,
+                        bordercolor="#c7c7c7",
+                        borderwidth=2,
+                        borderpad=4,
+                        bgcolor="#ff7f0e",
+                        opacity=0.8,
+                        captureevents = True
+                        )
 
-
-    fig.update_layout(width = 1000, height=400,\
-                    title_text = f'{sample_name} variant mutational prevalence )single-cells) histogram<br><sup>total: {total_cell_num} cells</sup>',\
-                    title_x = 0.5, title_xanchor = 'center', title_yanchor = 'top')
     return fig
 
 # def plot_sc_mutational_burden(sample_obj, sample_name = None):
