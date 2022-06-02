@@ -1,13 +1,12 @@
 Metadata-Version: 2.1
 Name: tea
-Version: 0.0.1
-Summary: Tapestri Express Analysis
+Version: 0.1.0
+Summary: a set of tools to do Tapestri Express Analysis
 Home-page: .
 Author: Haochen Zhang
-Author-email: haochenz1996@gmail.com
-License: UNKNOWN
-Project-URL: Bug Tracker, .
-Platform: UNKNOWN
+Author-email: zhangh5@mskcc.org
+Project-URL: Source, https://github.com/haochenz96/tea
+Project-URL: Bug Tracker, https://github.com/haochenz96/tea/issues
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
@@ -15,8 +14,4 @@ Requires-Python: >=3.6
 Description-Content-Type: text/markdown
 License-File: LICENSE
 
-# Tapestri Express Analysis
-
-For fast analysis of Tapestri results (h5 matrices).
-Detailed descrition to follow...
-
+README.md

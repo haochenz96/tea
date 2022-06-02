@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from pysam import VariantFile
 
-def get_ann(samples):
+def get_ann(samples): # Obsolete
     '''
     create mapping between genomic variant and HGVSp short
     input: 
@@ -46,42 +46,44 @@ def sort_for_var(dna, vars, attribute, method='hier'):
     - dna: a single missionbio.mosaic.sample.Sample.dna instance
     - vars: a list of variants of the form 'chr12:25398284:C/T'
     - attribute: "AF_MISSING", "NGT" etc.
-    - method: 'hier' (multiple vars) or 'single var' (single var, ascending value)
+    - method: 'hier' (multiple vars) or 'single_var' (single var, ascending value)
     
     return:
       ordered cell barcodes (hierarhchically)
     '''
+
+    if not isinstance(vars, list):
+        vars = [vars]
+
+    # check if every variant is present in the provided matrix
+    good_vars = []
+    for i in vars:
+        if not i in dna.ids():
+            print(f'[WARNING] --- {i} not in dna.ids')
+        else:
+            good_vars.append(i)
+
     if method == 'hier':
-        if not isinstance(vars, list):
-            vars = [vars]
-        assay = dna[dna.barcodes(), vars]
+        assay = dna[dna.barcodes(), good_vars]
         return assay.clustered_barcodes(orderby = attribute)
         
     elif method == 'single_var':
-        if not isinstance(vars, list):
-            vars = [vars]
-        
         data = dna.get_attribute(attribute, constraint = 'row')
-        return data.sort_values(by=vars).index
+        return data.sort_values(by=good_vars).index
 
-def label_for_single_var(sample, vars_of_interest, GQ_threshold=30, AF_threshold=20):
+def label_for_var(sample, vars_of_interest, AF_threshold=20, min_mut_var=0):
     '''
     function to create label based on the VAF of a particular set of variants, with the option to filter based on genomic variant quality (GQ). 
     '''
 
     if not isinstance(vars_of_interest, list):
         vars_of_interest = [vars_of_interest]
-        
-    # get cells with low-quality KRAS genotype
-    GQ_df = sample.dna.get_attribute('GQ', constraint='row+col')
-    low_q_cells = GQ_df[vars_of_interest].index[((GQ_df[vars_of_interest] < GQ_threshold).sum(axis=1) > 0) == True].tolist()
     
-    # get mutant cells
+    # get mutant cells: 
     AF_df = sample.dna.get_attribute('AF_MISSING', constraint='row+col')
-    mut_cells = AF_df[vars_of_interest].index[((AF_df[vars_of_interest] > AF_threshold).sum(axis=1) > 0) == True].tolist()
+    mut_cells = AF_df[vars_of_interest].index[((AF_df[vars_of_interest] > AF_threshold).sum(axis=1) > min_mut_var) == True].tolist()
     
-    sample.dna.set_labels(clusters = {'mutant_cells': mut_cells, \
-                                      'low_q_cells': low_q_cells}, \
+    sample.dna.set_labels(clusters = {'mutant_cells': mut_cells},
                           others_label='others')
 
 def rand_3split_normal_cells(sample):
@@ -182,4 +184,6 @@ def read_vcf_to_df(in_bcf, sample_name=None):
     out_df.set_index('condensed_format', inplace=True)
     return out_df
 
-
+def isNaN(num):
+    # check for float('nan') values
+    return num != num
