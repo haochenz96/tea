@@ -185,7 +185,9 @@ def plot_var_sc_mutational_prev(sample_obj, min_mut_prev_of_interest = 0.01,vars
     - sample_obj: missionbio.sample object
 
     - min_mut_prev_of_interest: minimum mutation prevalence to be plotted
-    - vars_to_highlight: list of variable names to highlight
+    - vars_to_highlight: dict
+        - key: variant name (e.g. 'chr12:25398284:C/A')
+        - value: variant annotation (e.g. 'KRAS p.G12V)
     
     '''
     if sample_name is None:
@@ -204,7 +206,7 @@ def plot_var_sc_mutational_prev(sample_obj, min_mut_prev_of_interest = 0.01,vars
     )
 
     fig.update_layout(width = 1000, height=400,\
-                    title_text = f'{sample_name} variant mutational prevalence )single-cells) histogram<br><sup>total: {total_cell_num} cells</sup>',\
+                    title_text = f'{sample_name} variant mutational prevalence (#single-cells) histogram<br><sup>total: {total_cell_num} cells</sup>',\
                     title_x = 0.5, title_xanchor = 'center', title_yanchor = 'top')
                     
     fig.update_yaxes(
@@ -247,7 +249,8 @@ def plot_var_sc_mutational_prev(sample_obj, min_mut_prev_of_interest = 0.01,vars
                 count += 1
                 
                 fig.add_annotation(x = mut_prev_array[var_i], y = y_val,
-                        text = str(vars_to_highlight[var_i]['Hugo_Symbol']) + ' ' + str(vars_to_highlight[var_i]['HGVSp_Short']),
+                        # text = str(vars_to_highlight[var_i]['Hugo_Symbol']) + ' ' + str(vars_to_highlight[var_i]['HGVSp_Short']),
+                        text = str(vars_to_highlight[var_i]),
                         xref = 'x', yref = 'y',
                         showarrow=True,
                         font=dict(
@@ -306,10 +309,10 @@ def plot_sc_mutational_burden(sample_obj, sample_name = None):
 
 def plot_snv_clone(
     sample_obj,
-    sample_name, 
-    story_topic,
     voi,
     attribute,
+    sample_name = None, 
+    story_topic = None,
     vars_to_sort_by = None,
     barcode_sort_method='hier',
     ann_map= None,
@@ -328,6 +331,10 @@ def plot_snv_clone(
     - ann_map: annotation map
 
     '''
+    if sample_name is None:
+        # attempt to get sample_name from h5 metadata
+        sample_name = sample_obj.dna.metadata['sample_name']
+    
     if vars_to_sort_by is None:
         vars_to_sort_by = voi[0]
 
@@ -355,7 +362,7 @@ def plot_snv_clone(
     if ann_map is not None:
         new_x_axis_vals = []
         for var_i in fig.layout.xaxis.ticktext.tolist():
-            ann = ann_map[var_i]['variant annotation']
+            ann = ann_map[var_i]
             new_x_axis_vals.append(ann)
         fig.update_xaxes(
             ticktext= new_x_axis_vals,
