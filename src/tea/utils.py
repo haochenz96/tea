@@ -166,7 +166,7 @@ def read_vcf_to_df(in_bcf, sample_name=None):
                 if len(alt_read_counts) != 0:
                     AF = alt_read_counts[0] / (ref_read_count + alt_read_counts[0])
                     if AF == 0:
-                        # print(f'[WARNING] position - {chr}:{start} AF is 0')
+                        print(f'[WARNING] position - {chr}:{start} AF is 0')
                         # skip if AF is 0
                     else:
                         out_df.loc[idx, ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count']] = [chr, start, end, ref_base, alt_bases[0], ref_read_count, alt_read_counts[0]]
