@@ -308,14 +308,14 @@ def plot_sc_mutational_burden(sample_obj, sample_name = None):
     return fig
 
 def plot_snv_clone(
-    sample_obj,
-    voi,
-    attribute,
-    sample_name = None, 
-    story_topic = None,
-    vars_to_sort_by = None,
-    barcode_sort_method='hier',
-    ann_map= None,
+    sample_obj: missionbio.sample,
+    voi: list,
+    attribute: str,
+    sample_name: str= None, 
+    story_topic: str = None,
+    vars_to_sort_by: list = None,
+    barcode_sort_method: str ='hier',
+    ann_map: dict = None,
     ):
     '''
     Plot sc-heatmap for given SNV for given attribute (e.g. AF / NGT)
