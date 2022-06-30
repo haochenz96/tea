@@ -7,7 +7,6 @@ src/tea/__init__.py
 src/tea/cli.py
 src/tea/cnv.py
 src/tea/cravat.py
-src/tea/filter_variants.py
 src/tea/parse.py
 src/tea/plots.py
 src/tea/tea.py

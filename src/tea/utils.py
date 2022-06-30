@@ -2,6 +2,9 @@
 import numpy as np
 import pandas as pd
 from pysam import VariantFile
+import logging
+logger = logging.getLogger(__name__)
+
 
 def get_ann(samples): # Obsolete
     '''
@@ -35,7 +38,6 @@ def get_ann(samples): # Obsolete
             return annotation_map
     else:
         print("input error")
-
 
 def sort_for_var(dna, vars, attribute, method='hier'):
 
@@ -130,7 +132,7 @@ def read_vcf_to_df(in_bcf, sample_name=None):
     '''
     if not isinstance(in_bcf, VariantFile):
         in_bcf = VariantFile(in_bcf)
-    out_df = pd.DataFrame(columns = ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count', 'AF'])
+    out_df = pd.DataFrame(columns = ['chr', 'start', 'end', 'ref_base', 'alt_base'])
 
     idx = 0
     for rec in in_bcf.fetch():
@@ -153,7 +155,7 @@ def read_vcf_to_df(in_bcf, sample_name=None):
             alt_read_counts = AD_field[1][1:]
 
             if len(alt_bases) > 1:
-                print(f'[WARNING] position - {chr}:{start} has more than 2 alleles')
+                logger.debug(f'[read_vcf_to_df][warning] position - {chr}:{start} has more than 2 alleles')
                 # consider multiallelic variant site
                 for sub_idx in range(len(alt_bases)):
                     out_df.loc[idx + sub_idx, ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count']] = [chr, start, end, ref_base, alt_bases[sub_idx], ref_read_count, alt_read_counts[sub_idx]]
@@ -165,22 +167,18 @@ def read_vcf_to_df(in_bcf, sample_name=None):
             else:
                 if len(alt_read_counts) != 0:
                     AF = alt_read_counts[0] / (ref_read_count + alt_read_counts[0])
-                    if AF == 0:
-                        print(f'[WARNING] position - {chr}:{start} AF is 0')
-                        # skip if AF is 0
-                    else:
+                    if AF != 0:
                         out_df.loc[idx, ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count']] = [chr, start, end, ref_base, alt_bases[0], ref_read_count, alt_read_counts[0]]
                         out_df.loc[idx, 'AF'] = AF
 
                 # skip if no AD info is available
                 else:
-                    print(f'[WARNING] position - {chr}:{start} no alternate allele information')
+                    logger.debug(f'[read_vcf_to_df][warning] position - {chr}:{start} no alternate allele information')
                 idx += 1
-
-                
+          
         else: # when no sample name is provided, only keep variant info
             if len(alt_bases) > 1:
-                print(f'[WARNING] position - {chr}:{start} has more than 2 alleles')
+                logger.debug(f'[read_vcf_to_df][warning] position - {chr}:{start} has more than 2 alleles')
                 # consider multiallelic variant site
                 for sub_idx in range(len(alt_bases)):
                     out_df.loc[idx + sub_idx, ['chr', 'start', 'end', 'ref_base', 'alt_base']] = [chr, start, end, ref_base, alt_bases[sub_idx]]            
