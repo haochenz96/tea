@@ -308,7 +308,7 @@ def plot_sc_mutational_burden(sample_obj, sample_name = None):
     return fig
 
 def plot_snv_clone(
-    sample_obj: missionbio.sample,
+    sample_obj,
     voi: list,
     attribute: str,
     sample_name: str= None, 

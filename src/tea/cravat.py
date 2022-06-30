@@ -5,7 +5,7 @@ from h5.data import Assay
 import numpy as np
 import pandas as pd
 from tea.parse import *
-
+import sys
 # ----- (1) functions to query from opencravat.org -----
 def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var_info):
     '''
@@ -48,6 +48,7 @@ def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var
     else:
         print(f"[WARNING] CRAVAT input file already exists!")
 
+sys.setrecursionlimit(100)
 def get_cravat_output(session, job_id, output_path):
     '''
     Writes a cravat input file for a given sample name
@@ -69,7 +70,7 @@ def get_cravat_output(session, job_id, output_path):
         print(f'[WARNING] CRAVAT run failed! Check input file')
         
     elif response.json()['status'] != 'Finished':
-        time.sleep(5)
+        time.sleep(10) # wait 10 seconds before checking again
         get_cravat_output(session, job_id, output_path)
 
     elif response.json()['status'] == 'Finished':
