@@ -5,7 +5,7 @@ from h5.data import Assay
 import numpy as np
 import pandas as pd
 from tea.parse import *
-
+import sys
 # ----- (1) functions to query from opencravat.org -----
 def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var_info):
     '''
@@ -48,6 +48,8 @@ def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var
     else:
         print(f"[WARNING] CRAVAT input file already exists!")
 
+sys.setrecursionlimit(100)
+print('[INFO] Recursion limit set to 100')
 def get_cravat_output(session, job_id, output_path):
     '''
     Writes a cravat input file for a given sample name
@@ -67,17 +69,14 @@ def get_cravat_output(session, job_id, output_path):
         'https://run.opencravat.org/submit/jobs/' + job_id + '/status')
     if response.json()['status'] == 'error':
         print(f'[WARNING] CRAVAT run failed! Check input file')
-        
-    elif response.json()['status'] != 'Finished':
-        time.sleep(5)
-        get_cravat_output(session, job_id, output_path)
-
     elif response.json()['status'] == 'Finished':
         output = session.get('https://run.opencravat.org/submit/jobs/' + job_id + '/reports/text')
 
         with open(output_path, 'w') as f:
-            f.write(output.text)
-
+            f.write(output.text)    
+    elif response.json()['status'] != 'Finished':
+        time.sleep(10) # wait 10 seconds before checking again
+        get_cravat_output(session, job_id, output_path)
     else:
         print(f'[WARNING] CRAVAT run failed! Unknown error')
 
