@@ -14,4 +14,8 @@ def check_matrix_format(input_array, string_format) -> bool:
     except TypeError:
         print('[ERROR] --- Input array is not a pandas.Series or a numpy.ndarray.')
         return False
+
+def isNaN(num):
+    # check for float('nan') values
+    return num != num
     
