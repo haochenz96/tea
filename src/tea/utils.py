@@ -2,6 +2,22 @@
 import numpy as np
 import pandas as pd
 from pysam import VariantFile
+import logging
+logger = logging.getLogger(__name__)
+from datetime import datetime
+import pytz as tz
+
+# ----- get current date and time
+def get_simple_timestamp(timezone = 'US/Eastern') -> str:
+    '''
+    function to get current date and time in a particular timezone
+    '''
+    tz_obj = tz.timezone(timezone) # <------ uses US eastern time by default
+    now = datetime.now(tz.utc).astimezone(tz_obj) 
+    timestamp = now.strftime("%a %m %d %H:%M:%S %Z %Y")
+    # datetime_simple = now.strftime("%Y-%m-%d--%H_%M")
+    return f'[{timezone}]] {timestamp}'
+
 
 def get_ann(samples): # Obsolete
     '''
@@ -35,7 +51,6 @@ def get_ann(samples): # Obsolete
             return annotation_map
     else:
         print("input error")
-
 
 def sort_for_var(dna, vars, attribute, method='hier'):
 
@@ -114,86 +129,3 @@ def rand_3split_normal_cells(sample):
     ]
 
     return norm_a.T[0], norm_b.T[0], norm_c
-
-def read_vcf_to_df(in_bcf, sample_name=None):
-    '''
-    Reads a vcf file and returns a pandas dataframe with the fields specified in fields_to_keep
-
-    inputs:
-    - in_bcf: path to vcf file
-    - sample_name: sample name to be used as index (only one at a time)
-        if None:
-            the dataframe will only have the variant info
-
-    outputs:
-    - out_df: parsed pandas dataframe 
-    '''
-    if not isinstance(in_bcf, VariantFile):
-        in_bcf = VariantFile(in_bcf)
-    out_df = pd.DataFrame(columns = ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count', 'AF'])
-
-    idx = 0
-    for rec in in_bcf.fetch():
-
-        chr = rec.chrom
-        if not chr.startswith('chr'):
-            chr = 'chr' + chr # add chr prefix for b37 chromosome notation
-        start = rec.pos
-        end = rec.stop
-
-        alleles = rec.alleles
-        ref_base=alleles[0]
-        alt_bases=alleles[1:]
-
-        if sample_name is not None:
-            # get ref and alt counts
-            AD_field_idx = np.where([i == 'AD' for i in rec.format.keys()])[0][0]
-            AD_field = rec.samples[sample_name].items()[AD_field_idx]
-            ref_read_count = AD_field[1][0]
-            alt_read_counts = AD_field[1][1:]
-
-            if len(alt_bases) > 1:
-                print(f'[WARNING] position - {chr}:{start} has more than 2 alleles')
-                # consider multiallelic variant site
-                for sub_idx in range(len(alt_bases)):
-                    out_df.loc[idx + sub_idx, ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count']] = [chr, start, end, ref_base, alt_bases[sub_idx], ref_read_count, alt_read_counts[sub_idx]]
-                    
-                    out_df.loc[idx + sub_idx, 'AF'] = alt_read_counts[sub_idx] / (ref_read_count + sum(alt_read_counts))
-            
-                idx += len(alt_bases)
-
-            else:
-                if len(alt_read_counts) != 0:
-                    AF = alt_read_counts[0] / (ref_read_count + alt_read_counts[0])
-                    if AF == 0:
-                        print(f'[WARNING] position - {chr}:{start} AF is 0')
-                        # skip if AF is 0
-                    else:
-                        out_df.loc[idx, ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count']] = [chr, start, end, ref_base, alt_bases[0], ref_read_count, alt_read_counts[0]]
-                        out_df.loc[idx, 'AF'] = AF
-
-                # skip if no AD info is available
-                else:
-                    print(f'[WARNING] position - {chr}:{start} no alternate allele information')
-                idx += 1
-
-                
-        else: # when no sample name is provided, only keep variant info
-            if len(alt_bases) > 1:
-                print(f'[WARNING] position - {chr}:{start} has more than 2 alleles')
-                # consider multiallelic variant site
-                for sub_idx in range(len(alt_bases)):
-                    out_df.loc[idx + sub_idx, ['chr', 'start', 'end', 'ref_base', 'alt_base']] = [chr, start, end, ref_base, alt_bases[sub_idx]]            
-                idx += len(alt_bases)
-
-            else:    
-                out_df.loc[idx, ['chr', 'start', 'end', 'ref_base', 'alt_base']] = [chr, start, end, ref_base, alt_bases[0]]
-                idx += 1
-
-    out_df['condensed_format'] = out_df['chr'].astype(str) + ':' + out_df['start'].astype(str) + ':' + out_df['ref_base'].astype(str) + '/' + out_df['alt_base'].astype(str)
-    out_df.set_index('condensed_format', inplace=True)
-    return out_df
-
-def isNaN(num):
-    # check for float('nan') values
-    return num != num

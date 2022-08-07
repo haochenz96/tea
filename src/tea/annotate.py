@@ -2,15 +2,16 @@ from pybedtools import BedTool
 import pandas as pd
 from pathlib import Path
 import mosaic.io as mio
+import numpy as np
 
-def annotate_snv_amplicon_coverage(sample, working_dir: str or pathlib.Path, amplicon_bed: str or pathlib.Path = None, ) -> pd.DataFrame:
+def annotate_snv_amplicon_coverage(sample, working_dir: str or pathlib.Path, insert_bed: str or pathlib.Path = None, ) -> pd.DataFrame:
     '''
     Annotate SNV dataframe with amplicon coverage information
 
     Inputs:
         sample:
             MissionBio sample object.
-        amplicon_bed: 
+        insert_bed: 
             amplicon insert bed file path
         working_dir:
             working directory path
@@ -22,21 +23,23 @@ def annotate_snv_amplicon_coverage(sample, working_dir: str or pathlib.Path, amp
     working_dir = Path(working_dir)
     
     # infer amplicon bed from sample if needed
-    if amplicon_bed is None:
+    if insert_bed is None:
         panel_version = sample.cnv.metadata['panel_version']
-        amplicon_bed_path = working_dir / f'{panel_version}-amplicon.bed'
-
-        amplicon_bed_df = pd.DataFrame()
-        amplicon_bed_df['CHROM'] = sample.cnv.col_attrs['CHROM']
-        if not amplicon_bed_df['CHROM'].str.startswith('chr').all():
-            amplicon_bed_df['CHROM'] = 'chr' + amplicon_bed_df['CHROM']
-        amplicon_bed_df['start_pos'] = sample.cnv.col_attrs['start_pos']
-        amplicon_bed_df['end_pos'] = sample.cnv.col_attrs['end_pos']
-        amplicon_bed_df['amplicon_id'] = sample.cnv.col_attrs['id']
-        amplicon_bed_df.to_csv(amplicon_bed_path, sep='\t', index=False)
-        amplicon_bed = BedTool(amplicon_bed_path)
+        insert_bed_path = working_dir / f'{panel_version}-amplicon.bed'
+        if not insert_bed_path.exists():
+            raise ValueError(f'amplicon bed file not found: {insert_bed_path}')
+            exit(1)
+        insert_bed_df = pd.DataFrame()
+        insert_bed_df['CHROM'] = sample.cnv.col_attrs['CHROM']
+        if not insert_bed_df['CHROM'].str.startswith('chr').all():
+            insert_bed_df['CHROM'] = 'chr' + insert_bed_df['CHROM']
+        insert_bed_df['start_pos'] = sample.cnv.col_attrs['start_pos']
+        insert_bed_df['end_pos'] = sample.cnv.col_attrs['end_pos']
+        insert_bed_df['amplicon_id'] = sample.cnv.col_attrs['id']
+        insert_bed_df.to_csv(insert_bed_path, sep='\t', index=False)
+        insert_bed = BedTool(insert_bed_path)
     else:
-        amplicon_bed = BedTool(amplicon_bed)
+        insert_bed = BedTool(insert_bed)
 
     # parse condensed foramt
     snv_bed_df = pd.DataFrame(index = sample.dna.ids())
@@ -47,7 +50,7 @@ def annotate_snv_amplicon_coverage(sample, working_dir: str or pathlib.Path, amp
     snv_bed_df[['chrom', 'start', 'end', 'condensed_format']].to_csv(working_dir / 'snv_bed.bed', sep='\t', index=False, header=False) # save it to a bed file; order of columns matters
 
     snv_bed = BedTool(working_dir / 'snv_bed.bed')
-    snv_panel_bed_isec = snv_bed.intersect(amplicon_bed, wao = True)
+    snv_panel_bed_isec = snv_bed.intersect(insert_bed, wao = True)
     snv_panel_bed_isec.saveas(working_dir / 'snv_bed_isec_with_panel_insert.bed')
 
     snv_panel_bed_isec_df = pd.read_csv((working_dir / 'snv_bed_isec_with_panel_insert.bed'), sep='\t', usecols = [3,4,5,6,7], names = ['condensed_format','chrom', 'start', 'end', 'amplicon_id']).set_index('condensed_format')

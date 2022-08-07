@@ -57,6 +57,7 @@ def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var
 
 # sys.setrecursionlimit(100) # <---- will cause issue for loading plotly
 # print('[INFO] Recursion limit set to 100')
+
 def get_cravat_output(session, job_id, output_path):
     '''
     Writes a cravat input file for a given sample name
