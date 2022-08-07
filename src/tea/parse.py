@@ -1,5 +1,6 @@
 # parse CRAVAT output
 import io
+from multiprocessing.sharedctypes import Value
 import pandas as pd
 from pathlib import Path
 
@@ -44,9 +45,30 @@ def read_until_match(in_file, match_pattern, num_occurences=1, include_last_matc
                     out_file.write(line)
             else:
                 out_file.write(line)
+    out_file.seek(0)
     return out_file
 
-def adjust_multiindex(df):
+def read_between_matches(in_file, match_pattern, num_start, num_end, include_last_match=False):
+    out_file = io.StringIO()
+    with open(in_file) as in_f:
+        match_count = 0
+        for line in in_f:
+            if match_pattern(line):
+                match_count += 1
+
+            if match_count < num_start:
+                continue
+            elif match_count >= num_start and match_count < num_end:
+                out_file.write(line)
+            elif match_count == num_end and include_last_match == True:
+                out_file.write(line)
+                break
+            else:
+                break
+    out_file.seek(0)
+    return out_file
+
+def adjust_multiindex(df) -> pd.DataFrame:
     """
     Rename unamed columns name for a multi-index Pandas DataFrame
 
@@ -67,6 +89,10 @@ def adjust_multiindex(df):
 
     for index_pair_i in df.columns:
         if 'Unnamed' in index_pair_i[0]:
+            try: 
+                last_seen
+            except NameError: 
+                last_seen = None
             if last_seen is None:
                 raise ValueError('Unnamed column found before named column')
             new_index_pair = (last_seen, index_pair_i[1])

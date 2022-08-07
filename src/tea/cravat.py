@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 from tea.parse import *
 import sys
+
+NONFUNC_SO = ['2kb_upstream_variant', '3_prime_UTR_variant', '5_prime_UTR_variant', 'intron_variant', 'splice_site_variant', 'synonymous_variant', ]
+
 # ----- (1) functions to query from opencravat.org -----
 def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var_info):
     '''
@@ -15,6 +18,7 @@ def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var
         - varaints: list of variants to be analyzed (in Tapestri output format)
         - cravat_input_path: path to write cravat input file
         - sample_name: sample name to be used for CRAVAT query
+        - *additional_var_info: one-column dataframes with variant_name as index, and additional information in the first column
 
         outputs:
 
@@ -42,14 +46,17 @@ def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var
                 pos = var.split(':')[1]
                 ref = var.split(':')[2].split('/')[0]
                 alt = var.split(':')[2].split('/')[1]
-
-                f.write(f'{chrom} {pos} + {ref} {alt} var_{var_count} {" ".join([str(additional_var_info[i][var]) for i in range(len(additional_var_info))])}\n')
+                if len(additional_var_info) > 0:
+                    f.write(f'{chrom} {pos} + {ref} {alt} var_{var_count} {" ".join([str(additional_var_info[i][var]) for i in range(len(additional_var_info))])}\n')
+                else:
+                    f.write(f'{chrom} {pos} + {ref} {alt} var_{var_count}\n')
+                    
         print(f"[INFO] Finished writing CRAVAT input file!")
     else:
         print(f"[WARNING] CRAVAT input file already exists!")
 
-sys.setrecursionlimit(100)
-print('[INFO] Recursion limit set to 100')
+# sys.setrecursionlimit(100) # <---- will cause issue for loading plotly
+# print('[INFO] Recursion limit set to 100')
 def get_cravat_output(session, job_id, output_path):
     '''
     Writes a cravat input file for a given sample name
@@ -131,29 +138,3 @@ def clean_and_format_cravat_df(cravat_df, fill_na = False):
         cravat_df = cravat_df.fillna('')
 
     return cravat_df
-
-# def create_cravat_assay(cravat_df) -> Assay:
-#     """
-#     Create CRAVAT assay from CRAVAT dataframe
-
-#     The first column should be SNV's in condensed format (e.g. "chr12:25398284:C/A")
-#     The first 2 rows should be CRAVAT output annotation column names
-#         1st row name: 'annotator'
-#         2nd row name: 'info'
-
-#     Inputs:
-#     - cravat_df: a pandas dataframe with the CRAVAT output
-
-#     Outputs:
-#     - assay: a missionbio.h5.data.Assay object
-#     """
-
-#     # sanity check cravat_df:
-#     condensed_format_regex = r'chr(\d+|X|Y):\d+:(A|T|G|C)+/(A|T|G|C)+'
-#     if not cravat_df.index.str.contains(condensed_format_regex, regex=True).all():
-#         print('[WARNING] The first column should be SNV\'s in condensed format (e.g. "chr12:25398284:C/A")')
-    
-#     if not cravat.df.columns.names == ['annotator', 'info']:
-#         print('[WARNING] The first 2 rows should be CRAVAT output annotation column names')
-#         print('    1st row name: \'annotator\'')
-#         print('    2nd row name: \'info\'')

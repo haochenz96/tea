@@ -1,1 +1,3 @@
 matplotlib-venn
+openpyxl
+pybedtools
