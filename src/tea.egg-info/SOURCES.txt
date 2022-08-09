@@ -8,6 +8,7 @@ src/tea/annotate.py
 src/tea/cli.py
 src/tea/cnv.py
 src/tea/cravat.py
+src/tea/format.py
 src/tea/parse.py
 src/tea/plots.py
 src/tea/tea.py

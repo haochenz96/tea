@@ -268,13 +268,26 @@ def read_vcf_to_df(in_bcf, sample_name=None):
 
             if len(alt_bases) > 1:
                 logger.debug(f'[read_vcf_to_df][warning] position - {chr}:{start} has more than 2 alleles')
-                # consider multiallelic variant site
-                for sub_idx in range(len(alt_bases)):
-                    out_df.loc[idx + sub_idx, ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count']] = [chr, start, end, ref_base, alt_bases[sub_idx], ref_read_count, alt_read_counts[sub_idx]]
-                    
-                    out_df.loc[idx + sub_idx, 'AF'] = alt_read_counts[sub_idx] / (ref_read_count + sum(alt_read_counts))
+                if len(alt_read_counts) != 0:
+                    # print(alt_bases)
+                    # print(alt_read_counts)
+                    # consider multiallelic variant site
+                    for sub_idx in range(len(alt_bases)):
+                        try:
+                            AF = alt_read_counts[sub_idx] / (ref_read_count + sum(alt_read_counts))                            
+                        except ZeroDivisionError:
+                            logger.debug(f'[read_vcf_to_df][warning] position - {chr}:{start} has 0 depth')
+                            # if zero depth, skip this variant
+                            continue
+                        else:
+                            out_df.loc[idx, ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count']] = [chr, start, end, ref_base, alt_bases[sub_idx], ref_read_count, alt_read_counts[sub_idx]]
+                            out_df.loc[idx, 'AF'] = AF
+                            idx += 1
+                
+                # skip if no AD info is available
+                else:
+                    logger.debug(f'[read_vcf_to_df][warning] position - {chr}:{start} no alternate allele information')
             
-                idx += len(alt_bases)
 
             else:
                 if len(alt_read_counts) != 0:
@@ -282,24 +295,23 @@ def read_vcf_to_df(in_bcf, sample_name=None):
                         AF = alt_read_counts[0] / (ref_read_count + alt_read_counts[0])
                     except ZeroDivisionError:
                         logger.debug(f'[read_vcf_to_df][warning] position - {chr}:{start} has 0 depth')
-                        idx += 1
                         continue
-                    if AF != 0:
+                    else:
                         out_df.loc[idx, ['chr', 'start', 'end', 'ref_base', 'alt_base','ref_read_count', 'alt_read_count']] = [chr, start, end, ref_base, alt_bases[0], ref_read_count, alt_read_counts[0]]
                         out_df.loc[idx, 'AF'] = AF
+                        idx += 1
 
                 # skip if no AD info is available
                 else:
                     logger.debug(f'[read_vcf_to_df][warning] position - {chr}:{start} no alternate allele information')
-                idx += 1
           
         else: # when no sample name is provided, only keep variant info
             if len(alt_bases) > 1:
                 logger.debug(f'[read_vcf_to_df][warning] position - {chr}:{start} has more than 2 alleles')
                 # consider multiallelic variant site
                 for sub_idx in range(len(alt_bases)):
-                    out_df.loc[idx + sub_idx, ['chr', 'start', 'end', 'ref_base', 'alt_base']] = [chr, start, end, ref_base, alt_bases[sub_idx]]            
-                idx += len(alt_bases)
+                    out_df.loc[idx, ['chr', 'start', 'end', 'ref_base', 'alt_base']] = [chr, start, end, ref_base, alt_bases[sub_idx]]            
+                    idx += 1
 
             else:    
                 out_df.loc[idx, ['chr', 'start', 'end', 'ref_base', 'alt_base']] = [chr, start, end, ref_base, alt_bases[0]]
