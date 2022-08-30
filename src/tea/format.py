@@ -2,7 +2,8 @@ import re
 import pandas as pd
 import numpy as np
 
-CONDENSED_FORMAT = 'chr.*:(\d+):.*/.*$'
+CONDENSED_SNV_FORMAT = 'chr.*:(\d+):.*/.*$'
+TAPESTRI_BARCODE_FORMAT = "([ATGC]{18}-1)"
 
 def check_matrix_format(input_array, string_format) -> bool:
     """
