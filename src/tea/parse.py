@@ -320,3 +320,19 @@ def read_vcf_to_df(in_bcf, sample_name=None):
     out_df['condensed_format'] = out_df['chr'].astype(str) + ':' + out_df['start'].astype(str) + ':' + out_df['ref_base'].astype(str) + '/' + out_df['alt_base'].astype(str)
     out_df.set_index('condensed_format', inplace=True)
     return out_df
+
+def rename_duplicated_names(names: pd.Series, sep: str = '_') -> pd.Series:
+    '''
+    Rename duplicated names in a pandas series
+
+    '''
+    cleaned_names = pd.Series(names.copy(deep=True))
+    print(cleaned_names)
+    for dup in names[names.duplicated(keep=False)]: 
+        cleaned_names[names.get_loc(dup)] = (
+            [dup + sep + str(d_idx) 
+            if d_idx != 0 
+            else dup 
+            for d_idx in range(names.get_loc(dup).sum())]
+            )
+    return cleaned_names

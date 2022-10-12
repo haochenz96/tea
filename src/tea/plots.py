@@ -20,31 +20,36 @@ config = {
 }
 
 def plot_venn(
-    working_dir, 
     sets, 
     labels, 
     sample_name = '',
+    title = '',
     colors = ['orange','deepskyblue','red'], 
-    plot_config = {'font.size': 10, 'font.family': 'Arial', 'font.weight': 'normal'}):
+    plot_config = {
+        'font.size': 10, 
+        'font.family': 'Arial', 
+        'font.weight': 'normal'
+        },
+    wd = None
+    ):
     '''
     Plots a venn diagram with the specified sets and labels
     note: only 2 or 3 sets are supported
 
     inputs:
-    - working_dir: directory to put the "Venn" folder in and save the plot
     - sets: list of sets to be plotted
     - labels: list of labels for each set
     - sample_name: sample name to be used as title (default is none)
     - colors: list of colors for each set (default: ['orange','deepskyblue','red'])
     - plot_config: matplotlib plot configuration
+    - wd: directory to put the "Venn" folder in and save the plot
     
     '''
     if not len(sets) == len(labels):
         print('length of sets and labels must be the same')
 
     plt.rcParams.update(plot_config)
-    plt.figure(figsize=(5,5)) 
-    ax = plt.gca() 
+    fig, ax = plt.subplots(figsize = (5,5))
     
     if len(sets) == 2:
         #print(colors[:2])
@@ -67,15 +72,16 @@ def plot_venn(
 
     ax.legend(handles= legend_elements,
             loc='center', bbox_to_anchor=(0.5, -0.05)) 
-      
-    if not isinstance(working_dir, Path):
-        working_dir = Path(working_dir)
-    (working_dir).mkdir(exist_ok=True, parents=True)
-    plt.savefig(
-        working_dir / f"{sample_name}_{'_'.join(labels)}_Venn_diagram.png",
-        dpi=300
-        )
-    plt.show()
+    ax.set(title = title)
+
+    if wd is not None:
+        wd = Path(wd)
+        (wd).mkdir(exist_ok=True, parents=True)
+        plt.savefig(
+            wd / f"{sample_name}_{'_'.join(labels)}_Venn_diagram.png",
+            dpi=300
+            )
+    return fig, ax
 
 def OBSOLETE_plot_var_sc_mut_prev_histogram(sample_obj, sample_name, **variants_to_highlight):
 
@@ -184,7 +190,7 @@ def plot_var_sc_mut_prev_histogram(
     sample_name: str = None,
     split_by: str = None,
     color_map: dict = None,
-    vars_to_highlight: list = None, 
+    vars_to_highlight: dict = None, 
     num_bins: int = 50,
     ) -> plotly.graph_objects.Figure:
     '''
@@ -204,8 +210,8 @@ def plot_var_sc_mut_prev_histogram(
     color_map : dict, optional
         dictionary with the color for each category. The default is None.
 
-    vars_to_highlight : list, optional
-        list of variant names to highlight. The default is None.
+    vars_to_highlight : dict, optional
+        dict of variant names to highlight, mapping variants in condensed format (e.g. chr12:25398284:C/A) to more informative format (e.g. KRAS p.G12V). The default is None.
     
     Returns
     -------
@@ -214,23 +220,28 @@ def plot_var_sc_mut_prev_histogram(
 
     '''
     if not 'sc_mut_prev' in df.columns:
-        raise ValueError('sc_mut_prev column is not in the dataframe')
-        exit(1)
-    elif df['sc_mut_prev'].type != 'float':
+        raise ValueError('`sc_mut_prev` column is not in the dataframe')
+       
+    elif df['sc_mut_prev'].dtype != 'float':
         try:
             df['sc_mut_prev'] = df['sc_mut_prev'].astype(float)
         except:
             raise ValueError('sc_mut_prev column might not be correctly formatted')
-            exit(1)
+           
 
     fig = go.Figure()
     bins_params = {
         'start': 0, 
         'end': df['sc_mut_prev'].max() * 1.2,
-        'size': df['sc_mut_prev'].max * 1.2 / num_bins,
+        'size': df['sc_mut_prev'].max() * 1.2 / num_bins,
     }
     if split_by is not None:
         unique_vals = df[split_by].unique()
+        if color_map is None:
+            if len(unique_vals) > 24:
+                raise ValueError('color_map must be provided if there are more than 24 unique categories to color by!')
+            else:
+                color_map = dict(zip(range(len(unique_vals)), px.colors.qualitative.Dark24))
         for val in unique_vals:
             fig.add_trace(go.Histogram(
                 x = df[df[split_by] == val]['sc_mut_prev'],
@@ -386,7 +397,7 @@ def plot_snv_clone(
 
     if subset:
         boi = sample_obj.dna.barcodes()[
-            sample_obj.dna.get_attribute('mut', constraint='row', features=voi).sum(axis=1) > 0
+            sample_obj.dna.get_attribute('mut_unfiltered', constraint='row', features=voi).sum(axis=1) > 0
         ]
     else:
         boi = sample_obj.dna.barcodes()

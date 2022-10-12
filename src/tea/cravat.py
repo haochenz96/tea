@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 from tea.parse import *
 import sys
+from tea.format import isNaN
+import time
+
 
 NONFUNC_SO = ['2kb_upstream_variant', '3_prime_UTR_variant', '5_prime_UTR_variant', 'intron_variant', 'splice_site_variant', 'synonymous_variant', ]
 
@@ -58,18 +61,26 @@ def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var
 # sys.setrecursionlimit(100) # <---- will cause issue for loading plotly
 # print('[INFO] Recursion limit set to 100')
 
-def get_cravat_output(session, job_id, output_path):
+def get_cravat_output(session, job_id, output_path, max_query_time = 120, query_times = 0):
     '''
-    Writes a cravat input file for a given sample name
+    Query the current session to check CRAVAT job status. If job is finished, download the output file to output_path.
     
-        inputs:
-        - session: requests.session where the cravat query is in
-        - job_id: can be feteched by post.json()['id']
-        - output_path: path to write the CRAVAT output file
+    Params:
+    ----------
+    - session: requests.session where the cravat query is in
+    - job_id: can be feteched by post.json()['id']
+    - output_path: path to write the CRAVAT output file
+    - max_query_time: maximum time to query for the output file (unit: seconds)
+    - query_times: number of times the query has been attempted; for keeping track of recursion.
 
-        outputs:
+    Returns:
+    ----------
+    None
 
     '''
+    if query_times >= int(max_query_time / 10):
+        raise RuntimeError(f'[ERROR] Maximum query time of {max_query_time} seconds exceeded!')
+
     if not isinstance(output_path, Path):
         output_path = Path(output_path)
     output_path.parents[0].mkdir(parents=True, exist_ok=True)
@@ -84,7 +95,7 @@ def get_cravat_output(session, job_id, output_path):
             f.write(output.text)    
     elif response.json()['status'] != 'Finished':
         time.sleep(10) # wait 10 seconds before checking again
-        get_cravat_output(session, job_id, output_path)
+        get_cravat_output(session, job_id, output_path, max_query_time, query_times + 1)
     else:
         print(f'[WARNING] CRAVAT run failed! Unknown error')
 
@@ -139,3 +150,30 @@ def clean_and_format_cravat_df(cravat_df, fill_na = False):
         cravat_df = cravat_df.fillna('')
 
     return cravat_df
+
+def create_ann_map_from_cravat_df(cravat_df):
+    '''
+    Create a dictionary of SNV from the cravat output dataframe based on the following rule:
+        if protein change is available, use protein change
+        if protein change is not available, use sequence ontology
+
+    inputs:
+    - cravat_df: cleaned, formatted cravat output dataframe
+
+    outputs:
+    - ann_map: dictionary of annotations
+    - ann_map_df: dataframe of annotations
+
+    '''
+    ann_map = {}
+    for var_i, row in cravat_df.iterrows():
+        if not var_i in ann_map:
+            if not isNaN(row['Variant Annotation']['Protein Change']): # coding variant
+                ann_map[var_i] = row['Variant Annotation']['Gene'] + ' ' + row['Variant Annotation']['Protein Change']
+            else:
+                ann_map[var_i] = row['Variant Annotation']['Gene'] + ' ' + row['Variant Annotation']['Sequence Ontology']
+    ann_map_df = pd.DataFrame.from_dict(ann_map, orient='index')
+    ann_map_df.columns = ['variant annotation']
+    ann_map_df.index.rename('condensed_format', inplace=True)
+    
+    return ann_map, ann_map_df
