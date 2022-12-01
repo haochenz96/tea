@@ -199,7 +199,7 @@ def plot_var_sc_mut_prev_histogram(
     Parameters
     ----------
     df : pd.DataFrame
-        dataframe with the condensed SNV format as index and the sc_mut_prev column at least. The column should be the percentage of cells carrying the SNV
+        dataframe with the condensed SNV format as index and the sc_mut_prev column at least. The column should be the number of cells carrying the SNV
 
     sample_name : str, optional
         name of the sample. The default is None.
@@ -212,6 +212,9 @@ def plot_var_sc_mut_prev_histogram(
 
     vars_to_highlight : dict, optional
         dict of variant names to highlight, mapping variants in condensed format (e.g. chr12:25398284:C/A) to more informative format (e.g. KRAS p.G12V). The default is None.
+    
+    num_bins : int, optional
+        number of bins to use for the histogram. The default is 50.
     
     Returns
     -------
