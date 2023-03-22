@@ -10,7 +10,7 @@ from tea.format import isNaN
 import time
 
 
-NONFUNC_SO = ['2kb_upstream_variant', '3_prime_UTR_variant', '5_prime_UTR_variant', 'intron_variant', 'splice_site_variant', 'synonymous_variant', ]
+NONFUNC_SO = ['2kb_upstream_variant', '3_prime_UTR_variant', '5_prime_UTR_variant', 'intron_variant', 'synonymous_variant', ]
 
 # ----- (1) functions to query from opencravat.org -----
 def write_cravat_input(variants, cravat_input_path, sample_name, *additional_var_info):
