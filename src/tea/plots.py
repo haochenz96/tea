@@ -443,7 +443,7 @@ def plot_snv_clone(
             tickangle= 90, 
             tickfont=dict(
                 family='Arial', 
-                color='crimson', 
+                # color='crimson', 
                 size=15
                 )
             )

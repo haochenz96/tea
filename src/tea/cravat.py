@@ -151,7 +151,7 @@ def clean_and_format_cravat_df(cravat_df, fill_na = False):
 
     return cravat_df
 
-def create_ann_map_from_cravat_df(cravat_df):
+def create_ann_map_from_cravat_df(cravat_df, voi=None):
     '''
     Create a dictionary of SNV from the cravat output dataframe based on the following rule:
         if protein change is available, use protein change
@@ -166,7 +166,11 @@ def create_ann_map_from_cravat_df(cravat_df):
 
     '''
     ann_map = {}
+    if voi is None:
+        voi = cravat_df.index
     for var_i, row in cravat_df.iterrows():
+        if not var_i in voi:
+            continue
         if not var_i in ann_map:
             if not isNaN(row['Variant Annotation']['Protein Change']): # coding variant
                 ann_map[var_i] = row['Variant Annotation']['Gene'] + ' ' + row['Variant Annotation']['Protein Change']
@@ -177,3 +181,15 @@ def create_ann_map_from_cravat_df(cravat_df):
     ann_map_df.index.rename('condensed_format', inplace=True)
     
     return ann_map, ann_map_df
+
+def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold = None, filter_broad_wes_pon = False):
+    mask = ~(cravat_df[('PoN_comparison','PoN-superset-8-normals-occurence')] >= 4) & \
+    ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= cravat_df[('Tapestri_result', 'sc_mut_prev')]) 
+
+    if num_cells is not None and bq_prev_threshold is not None:
+        mask = mask & ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= bq_prev_threshold*num_cells) 
+
+    if filter_broad_wes_pon:
+        mask = mask & isNaN(cravat_df[('bulk_comparison', 'bulk-broad_wes_pon-AF')])
+
+    return mask
