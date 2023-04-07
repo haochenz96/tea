@@ -182,8 +182,8 @@ def create_ann_map_from_cravat_df(cravat_df, voi=None):
     
     return ann_map, ann_map_df
 
-def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold = None, filter_broad_wes_pon = False):
-    mask = ~(cravat_df[('PoN_comparison','PoN-superset-8-normals-occurence')] >= 4) & \
+def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold = None, normals_occurence=4, filter_broad_wes_pon = False):
+    mask = ~(cravat_df[('PoN_comparison','PoN-superset-8-normals-occurence')] >= normals_occurence) & \
     ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= cravat_df[('Tapestri_result', 'sc_mut_prev')]) 
 
     if num_cells is not None and bq_prev_threshold is not None:
