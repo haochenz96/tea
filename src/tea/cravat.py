@@ -182,14 +182,32 @@ def create_ann_map_from_cravat_df(cravat_df, voi=None):
     
     return ann_map, ann_map_df
 
-def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold = None, normals_occurence=4, filter_broad_wes_pon = False):
-    mask = ~(cravat_df[('PoN_comparison','PoN-superset-8-normals-occurence')] >= normals_occurence) & \
-    ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= cravat_df[('Tapestri_result', 'sc_mut_prev')]) 
+def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold = 0.01, normals_pon_occurence=4, rescue_1000genome_af = 0, filter_broad_wes_pon = False,):
+    '''
+    Create a mask for technical artifacts
 
+    inputs:
+    - cravat_df: cleaned, formatted cravat output dataframe
+    - num_cells: number of cells in the sample
+    - bq_prev_threshold: base quality threshold for filtering. If none, will not filter.
+    - normals_pon_occurence: number of normals that the variant must be present in
+    - rescue_1000genome: whether to rescue recurrent PoN variants that are in 1000 genome
+    - filter_broad_wes_pon: whether to filter based on broad_wes_pon
+
+    outputs:
+    - mask: boolean mask for technical artifacts
+
+    '''
+    # ----- base quality mask -----
+    bq_mask = ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= cravat_df[('Tapestri_result', 'sc_mut_prev')]) 
     if num_cells is not None and bq_prev_threshold is not None:
-        mask = mask & ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= bq_prev_threshold*num_cells) 
+        bq_mask = bq_mask & ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= bq_prev_threshold*num_cells) 
 
+    # ----- PoN mask, potentially rescuing 1000 genome variants -----
+    pon_mask = ~(cravat_df[('PoN_comparison','PoN-superset-8-normals-occurence')] >= normals_pon_occurence) | \
+                (cravat_df[('bulk_comparison', 'bulk-1000genome-AF')] >= rescue_1000genome_af)
     if filter_broad_wes_pon:
-        mask = mask & isNaN(cravat_df[('bulk_comparison', 'bulk-broad_wes_pon-AF')])
+        pon_mask = pon_mask & isNaN(cravat_df[('bulk_comparison', 'bulk-broad_wes_pon-AF')])
+    
 
-    return mask
+    return bq_mask & pon_mask
