@@ -11,6 +11,7 @@ src/tea/cravat.py
 src/tea/format.py
 src/tea/parse.py
 src/tea/plots.py
+src/tea/snv.py
 src/tea/tea.py
 src/tea/utils.py
 src/tea.egg-info/PKG-INFO

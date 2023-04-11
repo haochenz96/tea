@@ -59,7 +59,10 @@ def annotate_snv_amplicon_coverage(sample, working_dir: str or pathlib.Path, ins
     assert snv_panel_bed_isec_df.shape[0] == sample.dna.shape[1], '[ERROR] The number of SNVs in the intersected DF does not match the number of SNVs in the original Tapestri data. Check if file formats are incorrect!'
 
     # fetch amplicon mean rc
-    amp_median_rc = sample.cnv.get_attribute('read_counts', constraint='row').median(axis=0)
-    snv_panel_bed_isec_df['median_rc'] = snv_panel_bed_isec_df['amplicon_id'].apply(lambda x: amp_median_rc[x] if x != '.' else np.nan)
+    try: # @HZ 03/08/2023: allows for cnv layer to not exist
+        amp_median_rc = sample.cnv.get_attribute('read_counts', constraint='row').median(axis=0)
+        snv_panel_bed_isec_df['median_rc'] = snv_panel_bed_isec_df['amplicon_id'].apply(lambda x: amp_median_rc[x] if x != '.' else np.nan)
+    except:
+        print('[ERROR] Failed to fetch amplicon mean read counts from sample.cnv layer.')
 
     return snv_panel_bed_isec_df

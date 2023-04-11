@@ -204,8 +204,10 @@ def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold =
         bq_mask = bq_mask & ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= bq_prev_threshold*num_cells) 
 
     # ----- PoN mask, potentially rescuing 1000 genome variants -----
-    pon_mask = ~(cravat_df[('PoN_comparison','PoN-superset-8-normals-occurence')] >= normals_pon_occurence) | \
-                (cravat_df[('bulk_comparison', 'bulk-1000genome-AF')] >= rescue_1000genome_af)
+    pon_mask = ~(cravat_df[('PoN_comparison','PoN-superset-8-normals-occurence')] >= normals_pon_occurence)
+    if rescue_1000genome_af is not None:
+        pon_mask = pon_mask | (cravat_df[('1000 Genomes', 'AF')] > rescue_1000genome_af)
+        
     if filter_broad_wes_pon:
         pon_mask = pon_mask & isNaN(cravat_df[('bulk_comparison', 'bulk-broad_wes_pon-AF')])
     
