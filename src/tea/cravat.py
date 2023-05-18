@@ -182,7 +182,7 @@ def create_ann_map_from_cravat_df(cravat_df, voi=None):
     
     return ann_map, ann_map_df
 
-def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold = 0.01, normals_pon_occurence=4, rescue_1000genome_af = 0, filter_broad_wes_pon = False,):
+def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold = 0.005, normals_pon_occurence=4, rescue_1000genome_af = 0, filter_broad_wes_pon = False,):
     '''
     Create a mask for technical artifacts
 
