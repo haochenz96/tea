@@ -199,17 +199,49 @@ def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold =
 
     '''
     # ----- base quality mask -----
-    bq_mask = ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= cravat_df[('Tapestri_result', 'sc_mut_prev')]) 
-    if num_cells is not None and bq_prev_threshold is not None:
-        bq_mask = bq_mask & ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= bq_prev_threshold*num_cells) 
+    if bq_prev_threshold is None:
+        print('[WARNING] No base quality threshold is given. Skipping filtering...')
+        bq_mask = pd.Series(True, index=cravat_df.index)
+    else:
+        try:
+            bq_mask = ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= cravat_df[('Tapestri_result', 'sc_mut_prev')]) 
+            if num_cells is not None:
+                print(f'[INFO] Filtering out variants with base quality flag in >= {bq_prev_threshold*num_cells}/{num_cells} single cells')
+                bq_mask = bq_mask & ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= bq_prev_threshold*num_cells) 
+            else:
+                raise ValueError('Number of cells is required to filter based on base quality threshold')
+
+        except KeyError:
+            print('[WARNING] Base quality threshold given but no blacklist-base_qual-sc_prev column is found in the CRAVAT file. Skipping filtering...')
+            bq_mask = pd.Series(True, index=cravat_df.index)
+            
 
     # ----- PoN mask, potentially rescuing 1000 genome variants -----
-    pon_mask = ~(cravat_df[('PoN_comparison','PoN-superset-8-normals-occurence')] >= normals_pon_occurence)
-    if rescue_1000genome_af is not None:
-        pon_mask = pon_mask | (cravat_df[('1000 Genomes', 'AF')] > rescue_1000genome_af)
-        
-    if filter_broad_wes_pon:
-        pon_mask = pon_mask & isNaN(cravat_df[('bulk_comparison', 'bulk-broad_wes_pon-AF')])
+    # find the normals_occurence column
+    normals_pon_occurence_col = None
+    for pon_col in cravat_df.columns.levels[1]:
+        if 'normals-occurence' in pon_col:
+            normals_pon_occurence_col = pon_col
+            break
+
+    if normals_pon_occurence_col is None:
+        print('[WARNING] No normals-occurence column is found. Skipping PoN filtering...')
+        pon_mask = pd.Series(True, index=cravat_df.index)
+    else:
+        pon_mask = ~(cravat_df[('PoN_comparison',normals_pon_occurence_col)] >= normals_pon_occurence)
+        if rescue_1000genome_af is not None:
+            try:
+                pon_mask = pon_mask | (cravat_df[('1000 Genomes', 'AF')] > rescue_1000genome_af)
+            except KeyError:
+                print('[WARNING] 1000 Genomes column not found! Skipping rescuing...')
+            
+        if filter_broad_wes_pon:
+            try:
+                pon_mask = pon_mask & isNaN(cravat_df[('bulk_comparison', 'bulk-broad_wes_pon-AF')])
+            except KeyError:
+                print('[WARNING] broad_wes_pon column not found! Skipping filtering...')
+
+
     
 
     return bq_mask & pon_mask
