@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from tea.parse import *
 import sys
-from tea.format import isNaN
+from tea.format import isNaN, check_matrix_format, CONDENSED_SNV_FORMAT
 import time
 
 
@@ -182,29 +182,52 @@ def create_ann_map_from_cravat_df(cravat_df, voi=None):
     
     return ann_map, ann_map_df
 
-def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold = 0.005, normals_pon_occurence=4, rescue_1000genome_af = 0.01, filter_broad_wes_pon = False,):
+def get_technical_artifact_mask(
+    voi,
+    cravat_df, 
+    num_cells, 
+    mut_prev_series,
+    bq_prev_threshold = 0.005, 
+    normals_pon_occurence=4, 
+    rescue_1000genome_af = 0.01, 
+    filter_broad_wes_pon = False,
+    ado_threshold = None,
+    ngt_df = None,
+    filter_TtoC_artifact = None,
+    blacklist = None
+    ):
     '''
     Create a mask for technical artifacts
 
     inputs:
+    - voi: list of variants of interest
     - cravat_df: cleaned, formatted cravat output dataframe
+    - mut_prev_series: series of mutational prevalence for each SNV
     - num_cells: number of cells in the sample
-    - bq_prev_threshold: base quality threshold for filtering. If none, will not filter.
-    - normals_pon_occurence: number of normals that the variant must be present in
-    - rescue_1000genome: whether to rescue recurrent PoN variants that are in 1000 genome
+    - bq_prev_threshold: base quality threshold for filtering. If none, will not filter. If yes, make sure that it matches up with mut_prev_series
+    - normals_pon_occurence: number of normals that the SNV must be present in
+    - rescue_1000genome: whether to rescue recurrent PoN SNVs that are in 1000 genome
     - filter_broad_wes_pon: whether to filter based on broad_wes_pon
+    - ado_threshold: filter SNVs that have 
+    - ngt_df: for getting high ADO SNVs. Should be single-cells x SNVs
+    - filter_TtoC_artifact: filter T>C artifacts
+    - blacklist: list of variants to be blacklisted
 
     outputs:
     - mask: boolean mask for technical artifacts
 
     '''
+    try:
+        cravat_df = cravat_df.loc[voi]
+    except KeyError:
+        raise KeyError('Some SNVs are not found in CRAVAT df!')
     # ----- base quality mask -----
     if bq_prev_threshold is None:
         print('[WARNING] No base quality threshold is given. Skipping filtering...')
-        bq_mask = pd.Series(True, index=cravat_df.index)
+        bq_mask = pd.Series(True, index=voi)
     else:
         try:
-            bq_mask = ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= cravat_df[('Tapestri_result', 'sc_mut_prev')]) 
+            bq_mask = ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= mut_prev_series) 
             if num_cells is not None:
                 print(f'[INFO] Filtering out variants with base quality flag in >= {bq_prev_threshold*num_cells}/{num_cells} single cells')
                 bq_mask = bq_mask & ~(cravat_df[('blacklist_comparison', 'blacklist-base_qual-sc_prev')] >= bq_prev_threshold*num_cells) 
@@ -213,9 +236,8 @@ def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold =
 
         except KeyError:
             print('[WARNING] Base quality threshold given but no blacklist-base_qual-sc_prev column is found in the CRAVAT file. Skipping filtering...')
-            bq_mask = pd.Series(True, index=cravat_df.index)
+            bq_mask = pd.Series(True, index=voi)
             
-
     # ----- PoN mask, potentially rescuing 1000 genome variants -----
     # find the normals_occurence column
     normals_pon_occurence_col = None
@@ -226,7 +248,7 @@ def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold =
 
     if normals_pon_occurence_col is None:
         print('[WARNING] No normals-occurence column is found. Skipping PoN filtering...')
-        pon_mask = pd.Series(True, index=cravat_df.index)
+        pon_mask = pd.Series(True, index=voi)
     else:
         pon_mask = ~(cravat_df[('PoN_comparison',normals_pon_occurence_col)] >= normals_pon_occurence)
         if rescue_1000genome_af is not None:
@@ -241,7 +263,50 @@ def get_technical_artifact_mask(cravat_df, num_cells = None, bq_prev_threshold =
             except KeyError:
                 print('[WARNING] broad_wes_pon column not found! Skipping filtering...')
 
+    # ----- ADO mask -----
+    ado_mask = pd.Series(True, index=voi)
+    if ado_threshold is not None:
+        try:
+            ngt_df = ngt_df[voi]
+        except KeyError:
+            raise KeyError('Some SNVs are not found in ngt_df!')
+        ado_high_vars = voi[
+            (ngt_df == 3).sum(axis=0) > (ado_threshold*num_cells)
+        ]
 
-    
+        print(f"[INFO] Filtering {len([v for v in voi if v in ado_high_vars])} SNVs due to ADO > {ado_threshold}")
+        ado_mask[ado_high_vars] = False
 
-    return bq_mask & pon_mask
+    # ----- T>C variants mask -----
+    tc_mask = pd.Series(True, index=voi)
+    if filter_TtoC_artifact is not None:
+        try:
+            filter_TtoC_artifact_binary = filter_TtoC_artifact['filter'] 
+            filter_TtoC_artifact_lower_thres = filter_TtoC_artifact['lower_thres']
+            filter_TtoC_artifact_upper_thres = filter_TtoC_artifact['upper_thres']
+        except KeyError:
+            raise ValueError(f"[ERROR] filter_TtoC_artifact must have keys ['filter', 'lower_thres', 'upper_thres']")
+
+        if filter_TtoC_artifact_binary:
+            tc_mask = (cravat_df.index.str.endswith('T/C')) & \
+                    (mut_prev_series >= filter_TtoC_artifact_lower_thres * num_cells) & \
+                    (mut_prev_series <= filter_TtoC_artifact_upper_thres * num_cells)
+            print(f"[INFO] There are {tc_mask.sum()} T>C artifacts that are rare. They will be filtered out.")
+            tc_mask = ~tc_mask
+
+    # ----- manual blacklist mask -----
+    blacklist_mask = pd.Series(True, index=voi)
+    if blacklist is not None:
+        if type(blacklist) is list:
+            blacklist_snvs = set(blacklist)
+        else:
+            try:
+                blacklist_snv_df = pd.read_csv(blacklist, index_col=0)
+                if not check_matrix_format(blacklist_snv_df, CONDENSED_SNV_FORMAT):
+                    raise ValueError(f"[ERROR] blacklist_snvs file not in the correct format (index column needs to be in condensed SNV format).")
+                blacklist_snvs = set(blacklist_snv_df.index)
+            except:
+                raise ValueError(f"[ERROR] blacklist_snvs should either be a list of SNVs or a path to a CSV file whose index is the list of SNVs.")
+        blacklist_mask.loc[[v for v in blacklist_snvs if v in blacklist_mask.index]] = False
+
+    return bq_mask & pon_mask & ado_mask & tc_mask & blacklist_mask
