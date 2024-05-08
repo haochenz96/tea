@@ -386,7 +386,7 @@ def plot_snv_clone(
     - voi: list of variants of interest
     - attribute: attribute to plot
     - vars_to_sort_by: variant to sort by
-    - barcode_sort_method: 'hier'(default) or 'single_var'; method to sort barcodes
+    - barcode_sort_method: 'hier'(default), 'single_var' or 'stringsort'; method to sort barcodes
     - ann_map: annotation map
     - subset: whether to subset to voi
 

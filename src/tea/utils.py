@@ -52,7 +52,7 @@ def get_ann(samples): # Obsolete
     else:
         print("input error")
 
-def sort_for_var(dna, vars, attribute, method='hier'):
+def sort_for_var(dna, vars, attribute, method='hier', label="label"):
 
     '''
     function to sort a particular set of barcodes for DNA values
@@ -85,6 +85,27 @@ def sort_for_var(dna, vars, attribute, method='hier'):
     elif method == 'single_var':
         data = dna.get_attribute(attribute, constraint = 'row')
         return data.sort_values(by=good_vars).index
+    elif method == 'stringsort':
+        # randomize order of barcode within each label
+        df = dna.get_attribute(attribute, constraint='row')
+        splitby = dna.get_attribute("label", constraint='row').values.flatten()
+        df.loc[:, "label"] = splitby
+
+        # @HZ: string sort for label
+        if len(set(splitby)) > 1:
+            label_order = sorted(set(splitby), key=lambda x: str(x))
+            df.loc[:, "label"] = pd.Categorical(splitby, label_order)
+        df = df.sort_values(by="label")
+
+        # string sort barcodes within each label
+        leaf_order = []
+        cells_done = 0
+        for _, df_lab in df.groupby("label"):
+            order = df_lab.index.values.astype(str)
+            order = np.argsort(order)
+            leaf_order.extend(order + cells_done)
+            cells_done += len(order)
+        return df.index[leaf_order].values
 
 def label_for_var(sample, vars_of_interest, AF_threshold=20, min_mut_var=0):
     '''
