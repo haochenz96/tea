@@ -18,7 +18,6 @@ def get_simple_timestamp(timezone = 'US/Eastern') -> str:
     # datetime_simple = now.strftime("%Y-%m-%d--%H_%M")
     return f'[{timezone}]] {timestamp}'
 
-
 def get_ann(samples): # Obsolete
     '''
     create mapping between genomic variant and HGVSp short
@@ -106,6 +105,8 @@ def sort_for_var(dna, vars, attribute, method='hier', label="label"):
             leaf_order.extend(order + cells_done)
             cells_done += len(order)
         return df.index[leaf_order].values
+    else:
+        raise ValueError(f"barcode sort method {method} not recognized")
 
 def label_for_var(sample, vars_of_interest, AF_threshold=20, min_mut_var=0):
     '''
@@ -150,3 +151,10 @@ def rand_3split_normal_cells(sample):
     ]
 
     return norm_a.T[0], norm_b.T[0], norm_c
+
+def rgb_string_to_hex(rgb):
+    """
+    e.g. input: 'rgb(141,211,199)'
+    """
+    rgb = tuple(map(int, rgb[4:-1].split(',')))
+    return '#%02x%02x%02x' % rgb

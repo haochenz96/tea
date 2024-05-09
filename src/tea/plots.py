@@ -1,5 +1,6 @@
 # Venn diagrams
 from random import sample
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib_venn import venn2, venn2_circles, venn2_unweighted, venn3
 from matplotlib.lines import Line2D
@@ -18,6 +19,18 @@ config = {
     'scale': 3 # Multiply title/legend/axis/canvas sizes by this factor
   }
 }
+
+def mpl_config_params(font_size=7):
+
+    mpl.rcParams.update(mpl.rcParamsDefault)
+    plt.rcParams['font.sans-serif'] = ['arial']
+    plt.rcParams['font.size'] = font_size
+    plt.rcParams['font.family'] = ['sans-serif']
+    plt.rcParams['svg.fonttype'] = 'none'
+    plt.rcParams['mathtext.fontset'] = 'custom'
+    plt.rcParams['mathtext.cal'] = 'arial'
+    plt.rcParams['mathtext.rm'] = 'arial'
+
 
 def plot_venn(
     sets, 
