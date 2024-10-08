@@ -8,7 +8,7 @@ from tea.parse import *
 import sys
 from tea.format import isNaN, check_matrix_format, CONDENSED_SNV_FORMAT
 import time
-
+from IPython import embed
 
 NONFUNC_SO = ['2kb_upstream_variant', '3_prime_UTR_variant', '5_prime_UTR_variant', 'intron_variant', 'synonymous_variant', ]
 
@@ -106,6 +106,8 @@ def clean_and_format_cravat_df(cravat_df, fill_na = False):
 
     # --- format multi-layer index
     cravat_df = adjust_multiindex(cravat_df)
+    # @HZ: 2024-10-07 ('ClinVar', 'Significance Detail') seems to be causing issue - drop duplicated multiindex
+    cravat_df = cravat_df.loc[:,~cravat_df.columns.duplicated()]
 
     # --- create Tapestri format
     for i, row in cravat_df.iterrows():
